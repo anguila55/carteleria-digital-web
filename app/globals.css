@@ -1,8 +1,25 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.68 0.14 220);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.83 0.14 85);
+  --secondary-foreground: oklch(0.145 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --surface: oklch(0.97 0 0);
+  --surface-light: oklch(0.99 0 0);
 }
 
 @theme inline {
@@ -10,6 +27,26 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-surface: var(--surface);
+  --color-surface-light: var(--surface-light);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -23,4 +60,96 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  /* Thin scrollbar css start */
+  .scrollbar-thin::-webkit-scrollbar {
+    @apply w-1.5;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply bg-slate-300 rounded-[50rem] hover:bg-slate-400;
+  }
+
+  .scrollbar-thin:active::-webkit-scrollbar-thumb {
+    @apply bg-slate-500;
+  }
+  /* Thin scrollbar css start */
+
+  /* Invisible scrollbar css start */
+  .scrollbar-invisible::-webkit-scrollbar-thumb {
+    @apply bg-transparent;
+  }
+
+  .hover\:scrollbar-visible:hover::-webkit-scrollbar-thumb {
+    @apply bg-slate-300;
+  }
+
+  .hover\:scrollbar-visible:hover::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-400;
+  }
+
+  .hover\:scrollbar-visible:hover::-webkit-scrollbar-thumb:active {
+    @apply bg-slate-500;
+  }
+  /* Invisible scrollbar css end */
+
+  /* Reset css Start */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-semibold text-foreground;
+  }
+
+  h1,
+  .h1 {
+    font-size: clamp(2rem, 1.2rem + 4vw, 4.5rem);
+  }
+
+  h2,
+  .h2 {
+    font-size: clamp(1.75rem, 1.11rem + 3.2vw, 3.75rem);
+  }
+
+  h3,
+  .h3 {
+    font-size: clamp(1.5rem, 1.02rem + 2.4vw, 3rem);
+  }
+
+  h4,
+  .h4 {
+    font-size: clamp(1.375rem, 1.095rem + 1.4vw, 2.25rem);
+  }
+
+  h5,
+  .h5 {
+    font-size: clamp(1.25rem, 1.05rem + 1vw, 1.875rem);
+  }
+
+  h6,
+  .h6 {
+    font-size: clamp(1.125rem, 1.005rem + 0.6vw, 1.5rem);
+  }
+  a {
+    @apply active:scale-[.95];
+  }
+  span {
+    @apply inline-block;
+  }
+  /* Reset css End */
 }
