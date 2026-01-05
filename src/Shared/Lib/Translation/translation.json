@@ -1,0 +1,41 @@
+{
+  "views": {
+    "auth": {
+      "signIn": {
+        "title": "Sign In to Your Account",
+        "subtitle": "Welcome back! Please enter your details.",
+        "description": "Access your account by signing in below.",
+        "metaData": {
+          "title": "Sign In - MyApp",
+          "description": "Sign in to your MyApp account to access all features."
+        }
+      }
+    }
+  },
+  "buttons": {
+    "SignIn": {
+      "text": "Sign In",
+      "loadingText": "Signing In..."
+    }
+  },
+  "inputs": {
+    "code": {
+      "label": "Verification Code",
+      "placeholder": "Enter your code"
+    }
+  },
+  "labels": {
+    "close": "Close"
+  },
+  "alerts": {
+    "auth": {
+      "signInSuccess": "You have successfully signed in.",
+      "signInError": "There was an error signing in. Please try again."
+    }
+  },
+  "validations": {
+    "code": {
+      "required": "Code is required."
+    }
+  }
+}
