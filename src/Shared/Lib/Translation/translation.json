@@ -1,0 +1,65 @@
+{
+  "views": {
+    "auth": {
+      "signIn": {
+        "title": "Sign In to Your Account",
+        "subtitle": "Welcome back! Please enter your details.",
+        "description": "Access your account by signing in below.",
+        "metaData": {
+          "title": "Sign In - Carteleria Digital",
+          "description": "Sign in to your Carteleria Digital account to access all features."
+        }
+      }
+    },
+    "home": {
+      "title": "Welcome to Carteleria Digital",
+      "subtitle": "Explore your content",
+      "description": "Here is where you can find all your personalized content.",
+      "metaData": {
+        "title": "Home - Carteleria Digital",
+        "description": "Your personalized content dashboard on Carteleria Digital."
+      }
+    }
+  },
+  "buttons": {
+    "SignIn": {
+      "text": "Sign In",
+      "loadingText": "Signing In..."
+    },
+    "play": {
+      "text": "Play Content",
+      "loadingText": "Loading..."
+    },
+    "stop": {
+      "text": "Stop Content",
+      "loadingText": "Stopping..."
+    },
+    "logOut": {
+      "text": "Log Out",
+      "loadingText": "Logging Out..."
+    }
+  },
+  "inputs": {
+    "code": {
+      "label": "Verification Code",
+      "placeholder": "Enter your code"
+    }
+  },
+  "labels": {
+    "close": "Close"
+  },
+  "alerts": {
+    "auth": {
+      "signInSuccess": "You have successfully signed in.",
+      "signInError": "There was an error signing in. Please try again."
+    },
+    "home": {
+      "fetchContentEmpty": "No content available to display."
+    }
+  },
+  "validations": {
+    "code": {
+      "required": "Code is required."
+    }
+  }
+}
