@@ -1,15 +1,19 @@
-import { ViewStructure } from './Types/Page.types'
 import { ButtonStructure } from './Types/Button.types'
 import { InputStructure } from './Types/Input.types'
+import { ViewStructure } from './Types/Page.types'
 
 export interface TranslationStructure {
   views: {
     auth: {
       signIn: ViewStructure
     }
+    home: ViewStructure
   }
   buttons: {
     SignIn: ButtonStructure
+    play: ButtonStructure
+    stop: ButtonStructure
+    logOut: ButtonStructure
   }
   inputs: {
     code: InputStructure
@@ -21,6 +25,9 @@ export interface TranslationStructure {
     auth: {
       signInSuccess: string
       signInError: string
+    }
+    home: {
+      fetchContentEmpty: string
     }
   }
   validations: {

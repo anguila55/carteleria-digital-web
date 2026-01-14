@@ -6,9 +6,18 @@
         "subtitle": "Welcome back! Please enter your details.",
         "description": "Access your account by signing in below.",
         "metaData": {
-          "title": "Sign In - MyApp",
-          "description": "Sign in to your MyApp account to access all features."
+          "title": "Sign In - Carteleria Digital",
+          "description": "Sign in to your Carteleria Digital account to access all features."
         }
+      }
+    },
+    "home": {
+      "title": "Welcome to Carteleria Digital",
+      "subtitle": "Explore your content",
+      "description": "Here is where you can find all your personalized content.",
+      "metaData": {
+        "title": "Home - Carteleria Digital",
+        "description": "Your personalized content dashboard on Carteleria Digital."
       }
     }
   },
@@ -16,6 +25,18 @@
     "SignIn": {
       "text": "Sign In",
       "loadingText": "Signing In..."
+    },
+    "play": {
+      "text": "Play Content",
+      "loadingText": "Loading..."
+    },
+    "stop": {
+      "text": "Stop Content",
+      "loadingText": "Stopping..."
+    },
+    "logOut": {
+      "text": "Log Out",
+      "loadingText": "Logging Out..."
     }
   },
   "inputs": {
@@ -31,6 +52,9 @@
     "auth": {
       "signInSuccess": "You have successfully signed in.",
       "signInError": "There was an error signing in. Please try again."
+    },
+    "home": {
+      "fetchContentEmpty": "No content available to display."
     }
   },
   "validations": {

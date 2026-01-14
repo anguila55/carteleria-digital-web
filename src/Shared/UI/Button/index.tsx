@@ -1,7 +1,7 @@
-import * as React from 'react'
 import { Slot } from '@radix-ui/react-slot'
 import { cva, type VariantProps } from 'class-variance-authority'
-import { Loader2 } from 'lucide-react'
+import { Loader2, type LucideIcon } from 'lucide-react'
+import * as React from 'react'
 
 import { cn } from '@/Shared/Lib/Utils'
 
@@ -51,11 +51,15 @@ function Button({
   loading,
   children,
   fullWidth,
+  icon: Icon,
+  iconPosition = 'left',
   ...props
 }: React.ComponentProps<'button'> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean
     loading?: boolean | LoadingProps
+    icon?: LucideIcon
+    iconPosition?: 'left' | 'right'
   }) {
   const Comp = asChild ? Slot : 'button'
 
@@ -70,7 +74,11 @@ function Button({
           {loadingText}
         </>
       ) : (
-        children
+        <>
+          {Icon && iconPosition === 'left' && <Icon className="h-4 w-4" />}
+          {children}
+          {Icon && iconPosition === 'right' && <Icon className="h-4 w-4" />}
+        </>
       )}
     </Comp>
   )
