@@ -18,6 +18,9 @@ export interface TranslationStructure {
     play: ButtonStructure
     stop: ButtonStructure
     logOut: ButtonStructure
+    downloadOffline: ButtonStructure
+    clearCache: ButtonStructure
+    refreshContent: ButtonStructure
   }
   inputs: {
     code: InputStructure

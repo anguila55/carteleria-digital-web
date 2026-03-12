@@ -19,6 +19,7 @@ export default defineConfig([
       '*.config.js',
       '*.config.mjs',
       'next-env.d.ts',
+      'public/sw.js',
       '**/*.css' // Ignorar archivos CSS ya que Tailwind usa sintaxis especial
     ]
   },
