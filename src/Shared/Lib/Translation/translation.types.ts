@@ -2,12 +2,16 @@ import { ButtonStructure } from './Types/Button.types'
 import { InputStructure } from './Types/Input.types'
 import { ViewStructure } from './Types/Page.types'
 
+interface HomeView extends ViewStructure {
+  messageToPlay: string
+}
+
 export interface TranslationStructure {
   views: {
     auth: {
       signIn: ViewStructure
     }
-    home: ViewStructure
+    home: HomeView
   }
   buttons: {
     SignIn: ButtonStructure

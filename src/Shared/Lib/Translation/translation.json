@@ -18,7 +18,8 @@
       "metaData": {
         "title": "Home - Carteleria Digital",
         "description": "Your personalized content dashboard on Carteleria Digital."
-      }
+      },
+      "messageToPlay": "Press 'Enter' to play content or use the buttons below."
     }
   },
   "buttons": {

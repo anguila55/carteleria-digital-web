@@ -83,7 +83,11 @@ const HomeView = (props: HomeViewProps) => {
     setShowContents(false)
     setHideCursor(false)
   }
-
+  const handleKeyDown = (event: KeyboardEvent) => {
+    if (event.key === 'Enter' && !showContents && !loading) {
+      startVideoPlayback()
+    }
+  }
   /*********** life cycle **********/
   useEffect(() => {
     if (content) {
@@ -101,12 +105,22 @@ const HomeView = (props: HomeViewProps) => {
   useEffect(() => {
     if (contentToPlay.length > 0) {
       if (contentToPlay[currentVideoIndex].type === 'image') {
-        setTimeout(() => {
-          playNextVideo()
-        }, 5000) // Mostrar la imagen por 5 segundos
+        setTimeout(
+          () => {
+            playNextVideo()
+          },
+          contentToPlay[currentVideoIndex].duration ? contentToPlay[currentVideoIndex].duration * 1000 : 5000
+        ) // Mostrar la imagen por la duracion que venga o por 5 segundos si no viene duración
       }
     }
   }, [currentVideoIndex])
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [showContents, loading])
 
   /*********** render **********/
 
@@ -134,6 +148,8 @@ const HomeView = (props: HomeViewProps) => {
         </div>
       ) : (
         <div className="flex flex-col items-center">
+          <p className="mb-8">{getTranslation('views.home.messageToPlay')}</p>
+
           <Button className={CLASS_BTN} icon={Play} disabled={loading} onClick={startVideoPlayback}>
             {getTranslation('buttons.play.text')}
           </Button>

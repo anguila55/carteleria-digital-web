@@ -16,22 +16,42 @@ export const signOutUser = async (): Promise<void> => {
   cookieStore.delete('auth_token')
 }
 
-export const authenticatedUser = async (code: string): Promise<AuthenticatedUserResponse> => {
+export const authenticatedUser = async (key: string): Promise<AuthenticatedUserResponse> => {
   const cookieStore = await cookies()
   try {
-    await new Promise((resolve) => setTimeout(resolve, 3000))
-    if (code === '1234') {
-      cookieStore.set('auth_token', 'some-token-1234', { httpOnly: true, path: '/' })
+    const path = new URL(`${process.env.BACKEND_URL}/playlists`)
+    path.searchParams.append('key', key)
+    const data = await fetch(path.toString(), {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.CONNECT_KEY || ''
+      },
+      cache: 'force-cache',
+      next: { revalidate: parseInt(process.env.NEXT_PUBLIC_TIMEOUT_FETCH || '7000') }
+    })
+
+    if (data.status !== 200) {
+      if (data.status === 404) {
+        return {
+          status: 'error',
+          message: 'Invalid code',
+          data: null
+        }
+      } else {
+        return {
+          status: 'error',
+          message: 'An error occurred during authentication',
+          data: null
+        }
+      }
+    } else {
+      const playList = await data.json()
+      cookieStore.set('auth_token', key, { httpOnly: true, path: '/' })
       return {
         status: 'success',
         message: 'Authenticated successfully',
-        data: { id: 1, name: 'John Doe', token: 'some-token-1234' }
-      }
-    } else {
-      return {
-        status: 'error',
-        message: 'Invalid code',
-        data: null
+        data: playList
       }
     }
   } catch (error) {
