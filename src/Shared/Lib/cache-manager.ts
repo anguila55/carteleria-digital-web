@@ -86,17 +86,6 @@ class CacheManager {
       return false
     }
 
-    console.log('Starting to cache videos:', {
-      count: videos.length,
-      types: videos.reduce(
-        (acc, v) => {
-          acc[v.type] = (acc[v.type] || 0) + 1
-          return acc
-        },
-        {} as Record<string, number>
-      )
-    })
-
     try {
       const response = await this.sendMessageToSW({
         type: 'CACHE_VIDEOS',
@@ -104,7 +93,6 @@ class CacheManager {
       })
 
       if (response.type === 'CACHE_COMPLETE') {
-        console.log('Cache operation completed for', response.cached, 'items')
         events?.onCacheComplete?.(response.cached)
         return true
       }

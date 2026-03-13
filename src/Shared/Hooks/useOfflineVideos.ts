@@ -142,11 +142,6 @@ export const useOfflineVideos = (videos: ContentToPlay[] = []): UseOfflineVideos
       const shouldAutoCache = cacheStatus.cachedCount === 0 || videos.length > cacheStatus.cachedCount
 
       if (shouldAutoCache) {
-        console.log('Auto-caching videos...', {
-          videosCount: videos.length,
-          cachedCount: cacheStatus.cachedCount,
-          videoUrls: videos.slice(0, 3).map((v) => ({ url: v.url, type: v.type })) // Solo los primeros 3 para debug
-        })
         cacheVideos(videos)
       }
     }

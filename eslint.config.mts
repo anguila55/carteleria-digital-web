@@ -20,6 +20,8 @@ export default defineConfig([
       '*.config.mjs',
       'next-env.d.ts',
       'public/sw.js',
+      'src/Shared/Hooks/useOfflineVideos.ts', // Ignorar este hook específico para evitar conflictos con el Service Worker
+      'src/Shared/Lib/cache-manager.ts', // Ignorar esta clase específica para evitar conflictos con el Service Worker
       '**/*.css' // Ignorar archivos CSS ya que Tailwind usa sintaxis especial
     ]
   },

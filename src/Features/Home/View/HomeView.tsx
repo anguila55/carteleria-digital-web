@@ -3,6 +3,9 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 
+// actions
+import { getDataContent, getFlagToCompare } from '@/Features/Home/Actions'
+
 // UI
 import { Button } from '@/Shared/UI'
 import { CheckCircle, Download, LogOut, Play, RefreshCw, Square, Wifi, WifiOff } from 'lucide-react'
@@ -23,6 +26,9 @@ import { ContentResponse, ContentToPlay } from '@/Features/Home/Types/Content.ty
 export interface HomeViewProps {
   content: ContentResponse
 }
+// constantes
+const TIMER = process.env.NEXT_PUBLIC_TIMEOUT_COMPARE ? parseInt(process.env.NEXT_PUBLIC_TIMEOUT_COMPARE) * 1000 : 7000
+
 const HomeView = (props: HomeViewProps) => {
   /*********** props **********/
   const { content } = props
@@ -74,23 +80,31 @@ const HomeView = (props: HomeViewProps) => {
   }
 
   const startVideoPlayback = () => {
-    setShowContents(true)
-    setHideCursor(true)
+    if (contentToPlay.length > 0) {
+      setShowContents(true)
+      setHideCursor(true)
+    }
   }
 
   const playNextVideo = () => {
-    if (contentToPlay.length === 0) return
+    if (contentToPlay.length === 0) {
+      return
+    }
 
     const nextIndex = (currentVideoIndex + 1) % contentToPlay.length
+
     setCurrentVideoIndex(nextIndex)
-    // No cambiar isPlaying para que continue la reproducción automática
   }
 
   const handleVideoEnded = () => {
     playNextVideo()
   }
 
-  const stopVideoPlayback = () => {}
+  const stopVideoPlayback = () => {
+    setShowContents(false)
+    setHideCursor(false)
+    setCurrentVideoIndex(0) // Reset to first video
+  }
 
   const handleActionUser = () => {
     setShowContents(false)
@@ -131,23 +145,31 @@ const HomeView = (props: HomeViewProps) => {
 
     setIsRevalidating(true)
     try {
-      toast.loading('Checking for new content...', { duration: 2000 })
+      const response = await getDataContent()
 
-      // Forzar revalidación de la página para obtener nuevo contenido
-      router.refresh()
-
-      // Mostrar mensaje de éxito después de un pequeño delay
-      setTimeout(() => {
-        toast.success('Content refreshed successfully')
-        setIsRevalidating(false)
-      }, 2000)
+      if (response.status === 'success' && response.data) {
+        prepareContent(response)
+      } else {
+        toast.error('Error revalidating content: ' + response.message)
+      }
+      setIsRevalidating(false)
     } catch (error) {
-      console.error('Error revalidating content:', error)
+      console.error('[DEBUG] Error revalidating content:', error)
       toast.error('Error checking for new content')
       setIsRevalidating(false)
     }
   }
+
+  const prepareDataToCompare = async () => {
+    const response = await getFlagToCompare()
+
+    if (response.status === 'success' && response.data === true) {
+      handleRevalidateContent()
+    }
+  }
+
   /*********** life cycle **********/
+
   useEffect(() => {
     if (content) {
       // mostrar error si existe
@@ -188,40 +210,65 @@ const HomeView = (props: HomeViewProps) => {
     }
   }, [isOfflineReady, contentToPlay.length])
 
+  useEffect(() => {
+    setInterval(() => {
+      if (cacheStatus.isOnline) {
+        prepareDataToCompare()
+      }
+    }, TIMER)
+  }, [])
+
+  // Auto-start offline playback when ready
+  useEffect(() => {
+    const shouldAutoStartOffline =
+      !cacheStatus.isOnline && // Offline
+      isOfflineReady && // Has cached videos
+      contentToPlay.length > 0 && // Has content
+      !showContents && // Not currently playing
+      !loading // Not loading
+
+    if (shouldAutoStartOffline) {
+      setTimeout(() => {
+        startVideoPlayback()
+      }, 2000) // Small delay to ensure UI is ready
+    }
+  }, [cacheStatus.isOnline, isOfflineReady, contentToPlay.length, showContents, loading])
+
   /*********** render **********/
 
   return (
     <div className={`h-dvh relative flex items-center justify-center ${hideCursor ? 'cursor-none' : ''}`}>
       {showContents && contentToPlay.length > 0 ? (
-        <div onMouseMove={handleActionUser} onClick={handleActionUser} className="w-full h-full">
+        <div onClick={handleActionUser} className="w-full h-full">
           {contentToPlay[currentVideoIndex]?.type === 'video' ? (
             <video
-              // ref={setVideoElement}
+              key={`video-${contentToPlay[currentVideoIndex]?.id}-${currentVideoIndex}`} // Force remount on index change
               src={contentToPlay[currentVideoIndex]?.url}
               className="w-full h-full object-cover"
               onEnded={handleVideoEnded}
+              onError={(e) => {
+                console.error('[DEBUG] Video error:', {
+                  url: contentToPlay[currentVideoIndex]?.url,
+                  offline: !cacheStatus.isOnline,
+                  error: e.currentTarget.error
+                })
+              }}
               muted
               autoPlay
               controls={false}
+              playsInline // Important for mobile/PWA
             />
           ) : (
             <img
+              key={`image-${contentToPlay[currentVideoIndex]?.id}-${currentVideoIndex}`} // Force remount on index change
               src={contentToPlay[currentVideoIndex]?.url}
               className="w-full h-full object-cover"
               alt="content image"
-              onError={(e) => {
-                console.error('Error loading image:', contentToPlay[currentVideoIndex]?.url)
-                // Intentar recargar la imagen una vez
-                const img = e.target as HTMLImageElement
-                if (!img.dataset.retried) {
-                  img.dataset.retried = 'true'
-                  setTimeout(() => {
-                    img.src = contentToPlay[currentVideoIndex]?.url + '?retry=' + Date.now()
-                  }, 1000)
-                }
-              }}
-              onLoad={() => {
-                console.log('Image loaded successfully:', contentToPlay[currentVideoIndex]?.url)
+              onError={() => {
+                console.error('[DEBUG] Image error:', {
+                  url: contentToPlay[currentVideoIndex]?.url,
+                  offline: !cacheStatus.isOnline
+                })
               }}
             />
           )}
@@ -267,9 +314,20 @@ const HomeView = (props: HomeViewProps) => {
           <Button className={CLASS_BTN} icon={Play} disabled={loading} onClick={startVideoPlayback}>
             {getTranslation('buttons.play.text')}
           </Button>
+
+          {/* Show different stop button text for offline */}
           <Button className={CLASS_BTN} icon={Square} disabled={loading} onClick={stopVideoPlayback}>
             {getTranslation('buttons.stop.text')}
           </Button>
+
+          {/* Offline status indicator */}
+          {!cacheStatus.isOnline && isOfflineReady && (
+            <div className="mb-4 p-2 bg-blue-100 rounded-lg text-center">
+              <p className="text-sm text-blue-800">
+                📱 Offline Mode Active - Playing from cache ({cacheStatus.cachedCount} videos)
+              </p>
+            </div>
+          )}
 
           {/* Botones de cache */}
           {hasVideosToCache && cacheStatus.isSupported && (
@@ -307,7 +365,13 @@ const HomeView = (props: HomeViewProps) => {
             {getTranslation('buttons.refreshContent.text')}
           </Button>
 
-          <Button variant="secondary" className={CLASS_BTN} icon={LogOut} onClick={handleLogOut} disabled={loading}>
+          <Button
+            variant="secondary"
+            className={CLASS_BTN}
+            icon={LogOut}
+            onClick={handleLogOut}
+            disabled={loading || !cacheStatus.isOnline}
+          >
             {getTranslation('buttons.logOut.text')}
           </Button>
         </div>
