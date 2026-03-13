@@ -8,6 +8,7 @@ export interface ContentToPlay {
 }
 
 export type ContentResponse = ActionResponse<ContentToPlay[] | null>
+export type CompareResponse = ActionResponse<boolean | null>
 
 export interface ContentPlayer {
   id: number

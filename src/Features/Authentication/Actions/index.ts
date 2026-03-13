@@ -14,6 +14,7 @@ type AuthenticatedUserResponse = ActionResponse<AuthenticateUser | null>
 export const signOutUser = async (): Promise<void> => {
   const cookieStore = await cookies()
   cookieStore.delete('auth_token')
+  cookieStore.delete('version_token')
 }
 
 export const authenticatedUser = async (key: string): Promise<AuthenticatedUserResponse> => {
@@ -27,8 +28,7 @@ export const authenticatedUser = async (key: string): Promise<AuthenticatedUserR
         'Content-Type': 'application/json',
         'x-api-key': process.env.CONNECT_KEY || ''
       },
-      cache: 'force-cache',
-      next: { revalidate: parseInt(process.env.NEXT_PUBLIC_TIMEOUT_FETCH || '7000') }
+      cache: 'no-cache'
     })
 
     if (data.status !== 200) {

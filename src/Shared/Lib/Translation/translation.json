@@ -38,6 +38,18 @@
     "logOut": {
       "text": "Log Out",
       "loadingText": "Logging Out..."
+    },
+    "downloadOffline": {
+      "text": "Download for Offline",
+      "loadingText": "Downloading..."
+    },
+    "clearCache": {
+      "text": "Clear Cache",
+      "loadingText": "Clearing..."
+    },
+    "refreshContent": {
+      "text": "Check New Content",
+      "loadingText": "Checking..."
     }
   },
   "inputs": {

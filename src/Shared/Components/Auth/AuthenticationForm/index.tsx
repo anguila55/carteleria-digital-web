@@ -1,7 +1,7 @@
 'use client'
 
-import { useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTransition } from 'react'
 
 // Contexts
 import { useLoading } from '@/Shared/Context/LoadingContext'
@@ -24,7 +24,7 @@ import { authenticatedUser } from '@/Features/Authentication/Actions'
 import { getTranslation } from '@/Shared/Lib/Translation'
 
 // utils
-import { loginSchema, LoginFormData } from '@/Features/Authentication/Schema'
+import { LoginFormData, loginSchema } from '@/Features/Authentication/Schema'
 
 const LoginForm = () => {
   /*********** states **********/
@@ -37,7 +37,7 @@ const LoginForm = () => {
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      code: ''
+      code: process.env.NODE_ENV === 'development' ? process.env.NEXT_PUBLIC_USER_CODE : ''
     }
   })
 
