@@ -17,13 +17,13 @@ export const useAutoStartCountdown = ({
   isOnline,
   onStart
 }: UseAutoStartCountdownProps) => {
-  const [autoStartTimer, setAutoStartTimer] = useState<number>(60)
+  const [autoStartTimer, setAutoStartTimer] = useState<number>(30)
   const [isCountdownActive, setIsCountdownActive] = useState<boolean>(false)
   const [isAutoStartCancelled, setIsAutoStartCancelled] = useState<boolean>(false)
 
   const startAutoStartCountdown = () => {
     if (contentToPlay.length > 0 && !showContents && !loading && !isAutoStartCancelled && isOnline) {
-      setAutoStartTimer(60)
+      setAutoStartTimer(30)
       setIsCountdownActive(true)
     }
   }
@@ -31,14 +31,14 @@ export const useAutoStartCountdown = ({
   const cancelAutoStart = () => {
     setIsCountdownActive(false)
     setIsAutoStartCancelled(true)
-    setAutoStartTimer(60)
+    setAutoStartTimer(30)
     toast.success('Auto-reproducción cancelada')
   }
 
   const resetAutoStart = () => {
     setIsCountdownActive(false)
     setIsAutoStartCancelled(false)
-    setAutoStartTimer(60)
+    setAutoStartTimer(30)
   }
 
   // Efecto para manejar el cronómetro de auto-inicio (solo online)
@@ -66,7 +66,7 @@ export const useAutoStartCountdown = ({
     // Si se pierde la conexión, cancelar el cronómetro
     if (!isOnline && isCountdownActive) {
       setIsCountdownActive(false)
-      setAutoStartTimer(60)
+      setAutoStartTimer(30)
       toast('Cronómetro cancelado: modo offline detectado')
     }
 
