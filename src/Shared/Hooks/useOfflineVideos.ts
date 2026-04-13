@@ -24,6 +24,7 @@ export const useOfflineVideos = (videos: ContentToPlay[] = []): UseOfflineVideos
     isSupported: false,
     isRegistered: false,
     cachedCount: 0,
+    cachedUrls: [],
     totalSize: 0,
     isOnline: true
   })
@@ -79,34 +80,6 @@ export const useOfflineVideos = (videos: ContentToPlay[] = []): UseOfflineVideos
     }
   }
 
-  // Verificar si el usuario está autenticado (tiene token)
-  const isAuthenticated = (): boolean => {
-    try {
-      // Verificar si hay cookies o localStorage con token de auth
-      if (typeof document !== 'undefined') {
-        const hasAuthCookie = document.cookie.includes('auth_token=')
-        return hasAuthCookie
-      }
-      return false
-    } catch (error) {
-      console.error('Error checking authentication status:', error)
-      return false
-    }
-  }
-
-  // Limpiar cache automáticamente cuando el usuario ya no esté autenticado
-  const checkAuthAndClearCache = async () => {
-    if (!isAuthenticated() && cacheStatus.cachedCount > 0) {
-      // console.log('User no longer authenticated, clearing video cache for security...')
-      try {
-        await cacheManager.clearCacheOnLogout()
-        await refreshCacheStatus()
-      } catch (error) {
-        console.error('Error auto-clearing cache after logout:', error)
-      }
-    }
-  }
-
   // Efectos
   useEffect(() => {
     refreshCacheStatus()
@@ -124,31 +97,25 @@ export const useOfflineVideos = (videos: ContentToPlay[] = []): UseOfflineVideos
     }
   }, [])
 
-  // Verificar periódicamente el estado de autenticación y limpiar cache si es necesario
-  useEffect(() => {
-    const interval = setInterval(() => {
-      checkAuthAndClearCache()
-    }, 5000) // Verificar cada 5 segundos
+  // Auto-cachear cuando hay archivos que no están en caché todavía
+  // Compara por URL real para detectar cambios de contenido aunque la cantidad sea la misma
+  const videoUrlSignature = videos.map((v) => v.url).join('|')
 
-    // También verificar inmediatamente
-    checkAuthAndClearCache()
-
-    return () => clearInterval(interval)
-  }, [cacheStatus.cachedCount])
-
-  // Auto-cachear cuando hay nuevos videos y está online
   useEffect(() => {
     if (videos.length > 0 && cacheStatus.isOnline && cacheStatus.isSupported && !isCaching) {
-      const shouldAutoCache = cacheStatus.cachedCount === 0 || videos.length > cacheStatus.cachedCount
+      const cachedSet = new Set(cacheStatus.cachedUrls)
+      const hasUncachedContent = videos.some((v) => !cachedSet.has(v.url))
 
-      if (shouldAutoCache) {
+      if (hasUncachedContent) {
         cacheVideos(videos)
       }
     }
-  }, [videos.length, cacheStatus.isOnline, cacheStatus.isSupported])
+  }, [videoUrlSignature, cacheStatus.isOnline, cacheStatus.isSupported, cacheStatus.cachedCount])
 
   // Estados derivados
-  const isOfflineReady = cacheStatus.cachedCount > 0 && videos.length > 0
+  // isOfflineReady: todas las URLs actuales están en caché (no solo que haya algo cacheado)
+  const cachedSet = new Set(cacheStatus.cachedUrls)
+  const isOfflineReady = videos.length > 0 && videos.every((v) => cachedSet.has(v.url))
   const hasVideosToCache = videos.length > 0
 
   return {
