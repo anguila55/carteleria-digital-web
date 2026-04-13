@@ -4,6 +4,7 @@ export interface CacheStatus {
   isSupported: boolean
   isRegistered: boolean
   cachedCount: number
+  cachedUrls: string[]
   totalSize: number
   isOnline: boolean
 }
@@ -16,11 +17,13 @@ export interface CacheManagerEvents {
 
 class CacheManager {
   private serviceWorkerRegistration: ServiceWorkerRegistration | null = null
-  private messageChannel: MessageChannel | null = null
+  private readyPromise: Promise<void>
 
   constructor() {
     if (typeof window !== 'undefined') {
-      this.initialize()
+      this.readyPromise = this.initialize()
+    } else {
+      this.readyPromise = Promise.resolve()
     }
   }
 
@@ -30,8 +33,11 @@ class CacheManager {
         this.serviceWorkerRegistration = await navigator.serviceWorker.register('/sw.js')
         console.log('Service Worker registered successfully')
 
-        // Esperar a que el SW esté activo
+        // Esperar a que el SW esté activo antes de declararse listo
         await navigator.serviceWorker.ready
+        // Actualizar referencia con el registro activo
+        this.serviceWorkerRegistration =
+          (await navigator.serviceWorker.getRegistration('/sw.js')) ?? this.serviceWorkerRegistration
       } catch (error) {
         console.error('Error registering Service Worker:', error)
       }
@@ -48,11 +54,12 @@ class CacheManager {
     const isSupported = await this.isSupported()
     const isOnline = navigator.onLine
 
-    if (!isSupported || !this.serviceWorkerRegistration) {
+    if (!isSupported) {
       return {
         isSupported,
         isRegistered: false,
         cachedCount: 0,
+        cachedUrls: [],
         totalSize: 0,
         isOnline
       }
@@ -64,6 +71,7 @@ class CacheManager {
         isSupported,
         isRegistered: true,
         cachedCount: response.cachedCount || 0,
+        cachedUrls: response.cachedUrls || [],
         totalSize: response.totalSize || 0,
         isOnline
       }
@@ -71,8 +79,9 @@ class CacheManager {
       console.error('Error getting cache status:', error)
       return {
         isSupported,
-        isRegistered: true,
+        isRegistered: false,
         cachedCount: 0,
+        cachedUrls: [],
         totalSize: 0,
         isOnline
       }
@@ -81,16 +90,10 @@ class CacheManager {
 
   // Cachear videos en background
   public async cacheVideos(videos: ContentToPlay[], events?: CacheManagerEvents): Promise<boolean> {
-    if (!this.serviceWorkerRegistration) {
-      events?.onCacheError?.('Service Worker not available')
-      return false
-    }
-
     try {
-      const response = await this.sendMessageToSW({
-        type: 'CACHE_VIDEOS',
-        videos: videos
-      })
+      const response = await this.sendMessageToSW({ type: 'CACHE_VIDEOS', videos }, (current, total) =>
+        events?.onCacheProgress?.(current, total)
+      )
 
       if (response.type === 'CACHE_COMPLETE') {
         events?.onCacheComplete?.(response.cached)
@@ -107,10 +110,6 @@ class CacheManager {
 
   // Limpiar cache
   public async clearCache(): Promise<boolean> {
-    if (!this.serviceWorkerRegistration) {
-      return false
-    }
-
     try {
       const response = await this.sendMessageToSW({ type: 'CLEAR_CACHE' })
       console.log('Video cache cleared successfully')
@@ -133,33 +132,50 @@ class CacheManager {
     return success
   }
 
-  // Enviar mensaje al Service Worker
-  private async sendMessageToSW(message: any): Promise<any> {
+  // Enviar mensaje al Service Worker.
+  // onProgress se llama por cada mensaje CACHE_PROGRESS, reseteando el timeout por archivo.
+  private async sendMessageToSW(message: any, onProgress?: (current: number, total: number) => void): Promise<any> {
+    // Esperar a que la inicialización termine antes de intentar enviar mensajes
+    await this.readyPromise
+
     if (!this.serviceWorkerRegistration?.active) {
       throw new Error('Service Worker not active')
     }
 
     return new Promise((resolve, reject) => {
       const messageChannel = new MessageChannel()
+      // 60 segundos por archivo: se resetea con cada CACHE_PROGRESS
+      const TIMEOUT_PER_FILE_MS = 60_000
+      let timeoutId: ReturnType<typeof setTimeout>
+
+      const resetTimeout = () => {
+        clearTimeout(timeoutId)
+        timeoutId = setTimeout(() => {
+          reject(new Error('Service Worker response timeout'))
+        }, TIMEOUT_PER_FILE_MS)
+      }
 
       messageChannel.port1.onmessage = (event) => {
-        resolve(event.data)
+        if (event.data.type === 'CACHE_PROGRESS') {
+          resetTimeout()
+          onProgress?.(event.data.current, event.data.total)
+        } else {
+          clearTimeout(timeoutId)
+          resolve(event.data)
+        }
       }
 
       messageChannel.port1.onmessageerror = (error) => {
+        clearTimeout(timeoutId)
         reject(error)
       }
 
-      // Timeout para evitar esperas infinitas
-      setTimeout(() => {
-        reject(new Error('Service Worker response timeout'))
-      }, 10000)
-
-      this.serviceWorkerRegistration?.active?.postMessage(message, [messageChannel.port2])
+      resetTimeout()
+      this.serviceWorkerRegistration!.active!.postMessage(message, [messageChannel.port2])
     })
   }
 
-  // Verificar si un video específico está cacheado
+  // Verificar si un archivo específico está cacheado
   public async isVideoCached(url: string): Promise<boolean> {
     if (!('caches' in window)) return false
 
@@ -173,7 +189,7 @@ class CacheManager {
     }
   }
 
-  // Obtener lista de videos cacheados
+  // Obtener lista de URLs cacheadas
   public async getCachedVideoUrls(): Promise<string[]> {
     if (!('caches' in window)) return []
 

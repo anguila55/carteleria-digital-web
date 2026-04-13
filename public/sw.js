@@ -30,7 +30,6 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url)
 
   // Solo interceptar archivos multimedia
-  // Temporalmente más permisivo para debug - verificar solo la extensión
   if (isMediaFile(url.pathname)) {
     console.log('Intercepting media file:', event.request.url)
     event.respondWith(handleMediaRequest(event.request))
@@ -43,32 +42,12 @@ function isMediaFile(pathname) {
   return mediaExtensions.some((ext) => pathname.toLowerCase().endsWith(ext))
 }
 
-// Verificar si la URL viene del S3 bucket esperado
-function isFromS3Bucket(url) {
-  // Lista de dominios de S3 comunes
-  const s3Patterns = [
-    '.s3.amazonaws.com',
-    '.s3.',
-    'amazonaws.com',
-    's3-'
-    // Agregar otros patrones si es necesario
-  ]
-
-  return (
-    s3Patterns.some((pattern) => url.includes(pattern)) ||
-    url.includes('storage') || // Para otros servicios de storage
-    url.includes('cdn') || // Para CDNs
-    url.includes('media')
-  ) // Para servidores de media
-}
-
 // Manejar requests de archivos multimedia
 async function handleMediaRequest(request) {
   try {
     const cache = await caches.open(CACHE_NAME)
     const cachedResponse = await cache.match(request)
 
-    // Determinar el tipo de archivo para logging
     const fileType = request.url.match(/\.(mp4|jpg|jpeg|png|gif)$/i)?.[1] || 'unknown'
 
     if (cachedResponse) {
@@ -86,7 +65,6 @@ async function handleMediaRequest(request) {
     })
 
     if (networkResponse.ok) {
-      // Verificar que la respuesta sea válida para el tipo de archivo
       const contentType = networkResponse.headers.get('content-type') || ''
       const isValidContent =
         (fileType === 'mp4' && contentType.includes('video')) ||
@@ -124,13 +102,8 @@ async function handleMediaRequest(request) {
 self.addEventListener('message', async (event) => {
   if (event.data.type === 'CACHE_VIDEOS') {
     const { videos } = event.data
-    await cacheVideosInBackground(videos)
-
-    // Notificar al cliente que el cache está listo
-    event.ports[0].postMessage({
-      type: 'CACHE_COMPLETE',
-      cached: videos.length
-    })
+    // Cachear en background enviando progreso por archivo via el port
+    await cacheVideosInBackground(videos, event.ports[0])
   }
 
   if (event.data.type === 'CLEAR_CACHE') {
@@ -145,16 +118,19 @@ self.addEventListener('message', async (event) => {
     event.ports[0].postMessage({
       type: 'CACHE_STATUS',
       cachedCount: status.cachedCount,
+      cachedUrls: status.cachedUrls,
       totalSize: status.totalSize
     })
   }
 })
 
-// Cachear videos en background
-async function cacheVideosInBackground(videos) {
+// Cachear archivos en background enviando CACHE_PROGRESS por cada archivo
+async function cacheVideosInBackground(videos, port) {
   const cache = await caches.open(CACHE_NAME)
+  let successCount = 0
 
-  for (const video of videos) {
+  for (let i = 0; i < videos.length; i++) {
+    const video = videos[i]
     try {
       const cachedResponse = await cache.match(video.url)
       if (!cachedResponse) {
@@ -176,17 +152,34 @@ async function cacheVideosInBackground(videos) {
           if (isValidContent || contentType.includes('application/octet-stream')) {
             await cache.put(video.url, response)
             console.log(`Successfully pre-cached ${fileType}:`, video.url)
+            successCount++
           } else {
             console.warn(`Invalid content-type ${contentType} for ${fileType}:`, video.url)
           }
         } else {
           console.error(`Failed to pre-cache ${fileType} (${response.status}):`, video.url)
         }
+      } else {
+        // Ya estaba cacheado, cuenta como éxito
+        successCount++
       }
     } catch (error) {
       console.error('Error pre-caching media:', video.url, error)
     }
+
+    // Notificar progreso al cliente después de cada archivo
+    port.postMessage({
+      type: 'CACHE_PROGRESS',
+      current: i + 1,
+      total: videos.length
+    })
   }
+
+  // Notificar que terminó
+  port.postMessage({
+    type: 'CACHE_COMPLETE',
+    cached: successCount
+  })
 }
 
 // Limpiar cache de videos
@@ -199,17 +192,18 @@ async function clearVideoCache() {
   }
 }
 
-// Obtener estado del cache
+// Obtener estado del cache incluyendo URLs cacheadas
 async function getCacheStatus() {
   try {
     const cache = await caches.open(CACHE_NAME)
     const keys = await cache.keys()
     return {
       cachedCount: keys.length,
-      totalSize: 0 // El API no permite calcular fácilmente el tamaño
+      cachedUrls: keys.map((req) => req.url),
+      totalSize: 0
     }
   } catch (error) {
     console.error('Error getting cache status:', error)
-    return { cachedCount: 0, totalSize: 0 }
+    return { cachedCount: 0, cachedUrls: [], totalSize: 0 }
   }
 }
