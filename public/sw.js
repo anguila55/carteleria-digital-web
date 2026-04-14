@@ -59,24 +59,16 @@ async function handleMediaRequest(request) {
     console.log(`Downloading and caching ${fileType}:`, request.url)
 
     const networkResponse = await fetch(request, {
-      mode: 'cors',
+      mode: 'no-cors',
       credentials: 'omit',
       cache: 'no-cache'
     })
 
-    if (networkResponse.ok) {
-      const contentType = networkResponse.headers.get('content-type') || ''
-      const isValidContent =
-        (fileType === 'mp4' && contentType.includes('video')) ||
-        (['jpg', 'jpeg', 'png', 'gif'].includes(fileType) && contentType.includes('image'))
-
-      if (isValidContent || contentType.includes('application/octet-stream')) {
-        const responseClone = networkResponse.clone()
-        await cache.put(request, responseClone)
-        console.log(`Successfully cached ${fileType}:`, request.url)
-      } else {
-        console.warn(`Invalid content-type ${contentType} for ${fileType}:`, request.url)
-      }
+    // Las opaque responses (no-cors) tienen status 0 y ok: false, pero son válidas para cachear
+    if (networkResponse.ok || networkResponse.type === 'opaque') {
+      const responseClone = networkResponse.clone()
+      await cache.put(request, responseClone)
+      console.log(`Successfully cached ${fileType}:`, request.url)
     } else {
       console.error(`Failed to fetch ${fileType} (${networkResponse.status}):`, request.url)
     }
@@ -89,6 +81,7 @@ async function handleMediaRequest(request) {
     try {
       return await fetch(request, {
         mode: 'no-cors',
+        credentials: 'omit',
         cache: 'no-cache'
       })
     } catch (fallbackError) {
@@ -138,24 +131,16 @@ async function cacheVideosInBackground(videos, port) {
         console.log(`Pre-caching ${fileType}:`, video.url)
 
         const response = await fetch(video.url, {
-          mode: 'cors',
+          mode: 'no-cors',
           credentials: 'omit',
           cache: 'no-cache'
         })
 
-        if (response.ok) {
-          const contentType = response.headers.get('content-type') || ''
-          const isValidContent =
-            (fileType === 'mp4' && contentType.includes('video')) ||
-            (['jpg', 'jpeg', 'png', 'gif'].includes(fileType) && contentType.includes('image'))
-
-          if (isValidContent || contentType.includes('application/octet-stream')) {
-            await cache.put(video.url, response)
-            console.log(`Successfully pre-cached ${fileType}:`, video.url)
-            successCount++
-          } else {
-            console.warn(`Invalid content-type ${contentType} for ${fileType}:`, video.url)
-          }
+        // Las opaque responses (no-cors) tienen status 0 y ok: false, pero son válidas para cachear
+        if (response.ok || response.type === 'opaque') {
+          await cache.put(video.url, response)
+          console.log(`Successfully pre-cached ${fileType}:`, video.url)
+          successCount++
         } else {
           console.error(`Failed to pre-cache ${fileType} (${response.status}):`, video.url)
         }
