@@ -149,7 +149,7 @@ const getFlagToCompare = async (): Promise<CompareResponse> => {
     } else {
       const response: { version: string } = await data.json()
       if (versionToken === '') {
-        cookieStore.set('version_token', response.version, { httpOnly: true, path: '/' })
+        cookieStore.set('version_token', response.version, { httpOnly: true, path: '/', maxAge: 60 * 60 * 24 * 30 * 6 })
         return {
           status: 'success',
           message: 'Version token set successfully',
@@ -158,7 +158,11 @@ const getFlagToCompare = async (): Promise<CompareResponse> => {
       } else {
         const isDifferent = versionToken !== response.version
         if (isDifferent) {
-          cookieStore.set('version_token', response.version, { httpOnly: true, path: '/' })
+          cookieStore.set('version_token', response.version, {
+            httpOnly: true,
+            path: '/',
+            maxAge: 60 * 60 * 24 * 30 * 6
+          })
         }
         return {
           status: 'success',
