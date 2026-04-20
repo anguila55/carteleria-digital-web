@@ -38,10 +38,42 @@ class CacheManager {
         // Actualizar referencia con el registro activo
         this.serviceWorkerRegistration =
           (await navigator.serviceWorker.getRegistration('/sw.js')) ?? this.serviceWorkerRegistration
+
+        // Cachear los assets estáticos ya cargados en el DOM (se cargan antes de que el SW esté activo)
+        this.cacheAlreadyLoadedAssets()
       } catch (error) {
         console.error('Error registering Service Worker:', error)
       }
     }
+  }
+
+  private cacheAlreadyLoadedAssets() {
+    if (!('caches' in window)) return
+
+    const urls: string[] = []
+
+    document.querySelectorAll<HTMLScriptElement>('script[src]').forEach((el) => {
+      if (el.src.includes('/_next/static/')) urls.push(el.src)
+    })
+    document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"][href]').forEach((el) => {
+      if (el.href.includes('/_next/static/')) urls.push(el.href)
+    })
+
+    if (urls.length === 0) return
+
+    caches.open('carteleria-app-shell-v1').then((cache) => {
+      urls.forEach((url) => {
+        cache.match(url).then((hit) => {
+          if (!hit) {
+            fetch(url)
+              .then((res) => {
+                if (res.ok) cache.put(url, res)
+              })
+              .catch(() => {})
+          }
+        })
+      })
+    })
   }
 
   // Verificar si el cache está disponible

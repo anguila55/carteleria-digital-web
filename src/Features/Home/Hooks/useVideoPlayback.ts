@@ -1,5 +1,5 @@
 import { ContentToPlay } from '@/Features/Home/Types/Content.types'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 interface UseVideoPlaybackProps {
   contentToPlay: ContentToPlay[]
@@ -11,6 +11,7 @@ export const useVideoPlayback = ({ contentToPlay, isOfflineReady, isOnline }: Us
   const [showContents, setShowContents] = useState<boolean>(false)
   const [hideCursor, setHideCursor] = useState<boolean>(false)
   const [currentVideoIndex, setCurrentVideoIndex] = useState<number>(0)
+  const [playCount, setPlayCount] = useState<number>(0)
 
   const startVideoPlayback = () => {
     if (contentToPlay.length > 0) {
@@ -22,21 +23,22 @@ export const useVideoPlayback = ({ contentToPlay, isOfflineReady, isOnline }: Us
   const stopVideoPlayback = () => {
     setShowContents(false)
     setHideCursor(false)
-    setCurrentVideoIndex(0) // Reset to first video
+    setCurrentVideoIndex(0)
+    setPlayCount(0)
   }
 
-  const playNextVideo = () => {
-    if (contentToPlay.length === 0) {
-      return
-    }
+  const playNextVideo = useCallback(() => {
+    setCurrentVideoIndex((prev) => (contentToPlay.length === 0 ? prev : (prev + 1) % contentToPlay.length))
+    setPlayCount((c) => c + 1)
+  }, [contentToPlay.length])
 
-    const nextIndex = (currentVideoIndex + 1) % contentToPlay.length
-    setCurrentVideoIndex(nextIndex)
-  }
-
-  const handleVideoEnded = () => {
+  const handleVideoEnded = useCallback(() => {
     playNextVideo()
-  }
+  }, [playNextVideo])
+
+  const handleVideoError = useCallback(() => {
+    playNextVideo()
+  }, [playNextVideo])
 
   const handleActionUser = () => {
     setShowContents(false)
@@ -57,13 +59,10 @@ export const useVideoPlayback = ({ contentToPlay, isOfflineReady, isOnline }: Us
         ? contentToPlay[currentVideoIndex].duration * 1000
         : 5000
 
-      const timeout = setTimeout(() => {
-        playNextVideo()
-      }, duration)
-
+      const timeout = setTimeout(playNextVideo, duration)
       return () => clearTimeout(timeout)
     }
-  }, [currentVideoIndex, contentToPlay])
+  }, [currentVideoIndex, contentToPlay.length, playNextVideo])
 
   // Event listener para teclas
   useEffect(() => {
@@ -92,10 +91,12 @@ export const useVideoPlayback = ({ contentToPlay, isOfflineReady, isOnline }: Us
     showContents,
     hideCursor,
     currentVideoIndex,
+    playCount,
     startVideoPlayback,
     stopVideoPlayback,
     playNextVideo,
     handleVideoEnded,
+    handleVideoError,
     handleActionUser
   }
 }

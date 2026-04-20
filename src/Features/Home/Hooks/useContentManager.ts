@@ -4,6 +4,8 @@ import { getTranslation } from '@/Shared/Lib/Translation/'
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 
+const CACHED_CONTENT_KEY = 'cached_content_playlist'
+
 interface UseContentManagerProps {
   initialContent: ContentResponse
 }
@@ -14,6 +16,23 @@ export const useContentManager = ({ initialContent }: UseContentManagerProps) =>
   const [loading, setLoading] = useState<boolean>(true)
   const [contentToPlay, setContentToPlay] = useState<ContentToPlay[]>([])
   const [isRevalidating, setIsRevalidating] = useState<boolean>(false)
+
+  const saveContentToStorage = (content: ContentToPlay[]) => {
+    try {
+      localStorage.setItem(CACHED_CONTENT_KEY, JSON.stringify(content))
+    } catch {
+      console.error('[DEBUG] Failed to save content to localStorage')
+    }
+  }
+
+  const loadContentFromStorage = (): ContentToPlay[] | null => {
+    try {
+      const stored = localStorage.getItem(CACHED_CONTENT_KEY)
+      return stored ? (JSON.parse(stored) as ContentToPlay[]) : null
+    } catch {
+      return null
+    }
+  }
 
   const showMessageError = (data: ContentResponse) => {
     if (data.status === 'error') {
@@ -27,9 +46,10 @@ export const useContentManager = ({ initialContent }: UseContentManagerProps) =>
     }
   }
 
-  const prepareContent = (response: ContentResponse) => {
-    if (response.status === 'success' && response.data) {
+  const prepareContent = (response: ContentResponse, persist = true) => {
+    if (response.status === 'success' && response.data && response.data.length > 0) {
       setContentToPlay(response.data)
+      if (persist) saveContentToStorage(response.data)
     }
   }
 
@@ -69,9 +89,17 @@ export const useContentManager = ({ initialContent }: UseContentManagerProps) =>
   // Inicializar contenido
   useEffect(() => {
     if (initialContent) {
-      showMessageError(initialContent)
-      showMessageEmpty(initialContent)
-      prepareContent(initialContent)
+      if (initialContent.status === 'error') {
+        const stored = loadContentFromStorage()
+        if (stored && stored.length > 0) {
+          setContentToPlay(stored)
+        } else {
+          showMessageError(initialContent)
+        }
+      } else {
+        showMessageEmpty(initialContent)
+        prepareContent(initialContent)
+      }
       setLoading(false)
     }
   }, [initialContent])
