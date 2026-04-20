@@ -40,9 +40,11 @@ const HomeView = (props: HomeViewProps) => {
     showContents,
     hideCursor,
     currentVideoIndex,
+    playCount,
     startVideoPlayback,
     stopVideoPlayback,
     handleVideoEnded,
+    handleVideoError,
     handleActionUser
   } = useVideoPlayback({
     contentToPlay,
@@ -90,8 +92,10 @@ const HomeView = (props: HomeViewProps) => {
         <MediaPlayer
           contentToPlay={contentToPlay}
           currentVideoIndex={currentVideoIndex}
+          playCount={playCount}
           isOnline={cacheStatus.isOnline}
           onVideoEnded={handleVideoEnded}
+          onVideoError={handleVideoError}
           onUserAction={handleActionUser}
         />
       ) : (

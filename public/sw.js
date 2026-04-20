@@ -1,6 +1,10 @@
 // Service Worker para cache de videos offline
 const CACHE_NAME = 'carteleria-videos-v1'
 const CACHE_URLS_NAME = 'carteleria-urls-v1'
+const APP_SHELL_CACHE = 'carteleria-app-shell-v1'
+
+// Páginas del app shell a cachear en runtime
+const APP_PAGES = ['/', '/home']
 
 // Eventos del Service Worker
 self.addEventListener('install', (event) => {
@@ -14,7 +18,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME && cacheName !== CACHE_URLS_NAME) {
+          if (cacheName !== CACHE_NAME && cacheName !== CACHE_URLS_NAME && cacheName !== APP_SHELL_CACHE) {
             console.log('Deleting old cache:', cacheName)
             return caches.delete(cacheName)
           }
@@ -25,14 +29,31 @@ self.addEventListener('activate', (event) => {
   clients.claim()
 })
 
-// Interceptar requests de videos/imágenes
+// Interceptar requests
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url)
 
-  // Solo interceptar archivos multimedia
+  // Solo interceptar requests del mismo origen o S3
+  if (url.origin !== self.location.origin && !isMediaFile(url.pathname)) {
+    return
+  }
+
+  // Archivos multimedia (videos/imágenes de S3) → cache-first
   if (isMediaFile(url.pathname)) {
-    console.log('Intercepting media file:', event.request.url)
     event.respondWith(handleMediaRequest(event.request))
+    return
+  }
+
+  // Assets estáticos de Next.js (/_next/static/) → cache-first (son content-hashed)
+  if (url.pathname.startsWith('/_next/static/')) {
+    event.respondWith(handleStaticAsset(event.request))
+    return
+  }
+
+  // Páginas HTML de la app → solo requests de navegación (no RSC/fetch del router)
+  if (event.request.mode === 'navigate') {
+    event.respondWith(handlePageRequest(event.request))
+    return
   }
 })
 
@@ -40,6 +61,58 @@ self.addEventListener('fetch', (event) => {
 function isMediaFile(pathname) {
   const mediaExtensions = ['.mp4', '.jpg', '.jpeg', '.png', '.gif']
   return mediaExtensions.some((ext) => pathname.toLowerCase().endsWith(ext))
+}
+
+// Verificar si es una página de la app
+function isAppPage(pathname) {
+  return APP_PAGES.includes(pathname) || APP_PAGES.some((p) => pathname.startsWith(p + '/'))
+}
+
+// Manejar páginas HTML: network-first, fallback a cache
+async function handlePageRequest(request) {
+  const cache = await caches.open(APP_SHELL_CACHE)
+
+  try {
+    const networkResponse = await fetch(request)
+    // Solo cachear respuestas exitosas
+    if (networkResponse.ok) {
+      cache.put(request, networkResponse.clone())
+    }
+    return networkResponse
+  } catch {
+    // Sin red → servir desde cache
+    const cachedResponse = await cache.match(request)
+    if (cachedResponse) {
+      console.log('Serving page from cache (offline):', request.url)
+      return cachedResponse
+    }
+    // Sin cache ni red → respuesta de error básica
+    return new Response('<html><body>Offline - no cache available</body></html>', {
+      status: 503,
+      headers: { 'Content-Type': 'text/html' }
+    })
+  }
+}
+
+// Manejar assets estáticos de Next.js: cache-first, network fallback
+async function handleStaticAsset(request) {
+  const cache = await caches.open(APP_SHELL_CACHE)
+  const cachedResponse = await cache.match(request)
+
+  if (cachedResponse) {
+    return cachedResponse
+  }
+
+  try {
+    const networkResponse = await fetch(request)
+    if (networkResponse.ok) {
+      cache.put(request, networkResponse.clone())
+    }
+    return networkResponse
+  } catch {
+    // Sin cache ni red: dejar que el browser maneje el error nativamente
+    return Response.error()
+  }
 }
 
 // Manejar requests de archivos multimedia

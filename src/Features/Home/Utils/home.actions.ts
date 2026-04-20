@@ -8,12 +8,11 @@ export const useHomeActions = () => {
 
   const handleLogOut = async (clearCache: () => Promise<void>) => {
     try {
-      // Limpiar cache de videos antes del logout por seguridad
       await clearCache()
+      localStorage.removeItem('cached_content_playlist')
       toast.success('Cache cleared for security')
     } catch (error) {
       console.error('Error clearing cache on logout:', error)
-      // Continuar con logout aunque falle el clear cache
     }
 
     await signOutUser()

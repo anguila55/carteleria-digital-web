@@ -82,11 +82,13 @@ export const useOfflineVideos = (videos: ContentToPlay[] = []): UseOfflineVideos
 
   // Efectos
   useEffect(() => {
+    // Sync inmediato del estado online (síncrono, antes de la comunicación async con SW)
+    setCacheStatus((prev) => ({ ...prev, isOnline: navigator.onLine }))
     refreshCacheStatus()
 
     // Escuchar cambios en el estado online/offline
     const handleOnline = () => refreshCacheStatus()
-    const handleOffline = () => refreshCacheStatus()
+    const handleOffline = () => setCacheStatus((prev) => ({ ...prev, isOnline: false }))
 
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)

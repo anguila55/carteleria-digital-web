@@ -3,16 +3,20 @@ import { ContentToPlay } from '@/Features/Home/Types/Content.types'
 interface MediaPlayerProps {
   contentToPlay: ContentToPlay[]
   currentVideoIndex: number
+  playCount: number
   isOnline: boolean
   onVideoEnded: () => void
+  onVideoError: () => void
   onUserAction: () => void
 }
 
 export const MediaPlayer = ({
   contentToPlay,
   currentVideoIndex,
+  playCount,
   isOnline,
   onVideoEnded,
+  onVideoError,
   onUserAction
 }: MediaPlayerProps) => {
   const currentContent = contentToPlay[currentVideoIndex]
@@ -23,33 +27,28 @@ export const MediaPlayer = ({
     <div onClick={onUserAction} className="w-full h-full">
       {currentContent.type === 'video' ? (
         <video
-          key={`video-${currentContent.id}-${currentVideoIndex}`} // Force remount on index change
+          key={`video-${playCount}`}
           src={currentContent.url}
           className="w-full h-full object-cover"
           onEnded={onVideoEnded}
-          onError={(e) => {
-            console.error('[DEBUG] Video error:', {
-              url: currentContent.url,
-              offline: !isOnline,
-              error: e.currentTarget.error
-            })
+          onError={() => {
+            console.error('[DEBUG] Video error offline:', currentContent.url, !isOnline)
+            onVideoError()
           }}
           muted
           autoPlay
           controls={false}
-          playsInline // Important for mobile/PWA
+          playsInline
         />
       ) : (
         <img
-          key={`image-${currentContent.id}-${currentVideoIndex}`} // Force remount on index change
+          key={`image-${playCount}`}
           src={currentContent.url}
           className="w-full h-full object-cover"
           alt="content image"
           onError={() => {
-            console.error('[DEBUG] Image error:', {
-              url: currentContent.url,
-              offline: !isOnline
-            })
+            console.error('[DEBUG] Image error offline:', currentContent.url, !isOnline)
+            onVideoError()
           }}
         />
       )}

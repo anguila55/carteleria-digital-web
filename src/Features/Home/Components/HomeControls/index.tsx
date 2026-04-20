@@ -79,13 +79,7 @@ export const HomeControls = ({
         {getTranslation('buttons.refreshContent.text')}
       </Button>
 
-      <Button
-        variant="secondary"
-        className={CLASS_BTN}
-        icon={LogOut}
-        onClick={onLogOut}
-        disabled={loading || !isOnline}
-      >
+      <Button variant="secondary" className={CLASS_BTN} icon={LogOut} onClick={onLogOut} disabled={loading}>
         {getTranslation('buttons.logOut.text')}
       </Button>
     </>
