@@ -52,6 +52,7 @@ const LoginForm = () => {
           toast.error(res.message)
         } else {
           toast.success(getTranslation('alerts.auth.signInSuccess'))
+          localStorage.setItem('is_authenticated', 'true')
           router.push('/home')
         }
       } catch (error) {
