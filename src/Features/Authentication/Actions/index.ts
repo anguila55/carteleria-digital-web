@@ -47,7 +47,13 @@ export const authenticatedUser = async (key: string): Promise<AuthenticatedUserR
       }
     } else {
       const playList = await data.json()
-      cookieStore.set('auth_token', key, { httpOnly: true, path: '/', maxAge: 60 * 60 * 24 * 30 * 6 })
+      cookieStore.set('auth_token', key, {
+        httpOnly: true,
+        path: '/',
+        maxAge: 60 * 60 * 24 * 30 * 6,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax'
+      })
       return {
         status: 'success',
         message: 'Authenticated successfully',
