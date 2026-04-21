@@ -7,6 +7,7 @@ interface UseAutoStartCountdownProps {
   showContents: boolean
   loading: boolean
   isOnline: boolean
+  isOfflineReady: boolean
   onStart: () => void
 }
 
@@ -15,14 +16,16 @@ export const useAutoStartCountdown = ({
   showContents,
   loading,
   isOnline,
+  isOfflineReady,
   onStart
 }: UseAutoStartCountdownProps) => {
+  const canAutoStart = isOnline || isOfflineReady
   const [autoStartTimer, setAutoStartTimer] = useState<number>(30)
   const [isCountdownActive, setIsCountdownActive] = useState<boolean>(false)
   const [isAutoStartCancelled, setIsAutoStartCancelled] = useState<boolean>(false)
 
   const startAutoStartCountdown = () => {
-    if (contentToPlay.length > 0 && !showContents && !loading && !isAutoStartCancelled && isOnline) {
+    if (contentToPlay.length > 0 && !showContents && !loading && !isAutoStartCancelled && canAutoStart) {
       setAutoStartTimer(30)
       setIsCountdownActive(true)
     }
@@ -41,16 +44,15 @@ export const useAutoStartCountdown = ({
     setAutoStartTimer(30)
   }
 
-  // Efecto para manejar el cronómetro de auto-inicio (solo online)
+  // Efecto para manejar el cronómetro de auto-inicio
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null
 
-    if (isCountdownActive && autoStartTimer > 0 && isOnline) {
+    if (isCountdownActive && autoStartTimer > 0) {
       interval = setInterval(() => {
         setAutoStartTimer((prev) => {
           if (prev <= 1) {
             setIsCountdownActive(false)
-            // Iniciar reproducción cuando llega a 0
             setTimeout(() => {
               onStart()
             }, 100)
@@ -59,15 +61,6 @@ export const useAutoStartCountdown = ({
           return prev - 1
         })
       }, 1000)
-    } else if (!isCountdownActive && interval) {
-      clearInterval(interval)
-    }
-
-    // Si se pierde la conexión, cancelar el cronómetro
-    if (!isOnline && isCountdownActive) {
-      setIsCountdownActive(false)
-      setAutoStartTimer(30)
-      toast('Cronómetro cancelado: modo offline detectado')
     }
 
     return () => {
@@ -75,17 +68,16 @@ export const useAutoStartCountdown = ({
         clearInterval(interval)
       }
     }
-  }, [isCountdownActive, autoStartTimer, isOnline, onStart])
+  }, [isCountdownActive, autoStartTimer, onStart])
 
   // Efecto para iniciar el cronómetro automáticamente cuando hay contenido disponible
   useEffect(() => {
-    if (contentToPlay.length > 0 && !loading && !showContents && !isAutoStartCancelled && isOnline) {
-      // Iniciar cronómetro después de un pequeño delay para online mode
+    if (contentToPlay.length > 0 && !loading && !showContents && !isAutoStartCancelled && canAutoStart) {
       setTimeout(() => {
         startAutoStartCountdown()
       }, 2000)
     }
-  }, [contentToPlay.length, loading, showContents, isAutoStartCancelled, isOnline])
+  }, [contentToPlay.length, loading, showContents, isAutoStartCancelled, isOnline, isOfflineReady])
 
   // Reset auto-start cuando se detiene manualmente la reproducción
   useEffect(() => {

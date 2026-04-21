@@ -52,11 +52,14 @@ const HomeView = (props: HomeViewProps) => {
     isOnline: cacheStatus.isOnline
   })
 
+  const hasCachedContent = cacheStatus.cachedCount > 0
+
   const { autoStartTimer, isCountdownActive, cancelAutoStart } = useAutoStartCountdown({
     contentToPlay,
     showContents,
     loading,
     isOnline: cacheStatus.isOnline,
+    isOfflineReady: hasCachedContent,
     onStart: startVideoPlayback
   })
 
@@ -109,7 +112,7 @@ const HomeView = (props: HomeViewProps) => {
           />
 
           <AutoStartCountdown
-            isActive={isCountdownActive && cacheStatus.isOnline}
+            isActive={isCountdownActive && (cacheStatus.isOnline || hasCachedContent)}
             timer={autoStartTimer}
             onCancel={cancelAutoStart}
           />
