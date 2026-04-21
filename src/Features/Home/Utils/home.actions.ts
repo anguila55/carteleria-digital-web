@@ -15,6 +15,7 @@ export const useHomeActions = () => {
       console.error('Error clearing cache on logout:', error)
     }
 
+    localStorage.removeItem('is_authenticated')
     await signOutUser()
     router.push('/')
   }
